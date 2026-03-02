@@ -5,8 +5,8 @@
 
 body {
   margin: 0;
-  background: #080e1f;
-  color: #e5e7eb;
+  background: #f4f7fb;
+  color: #142033;
 }
 
 .container {
@@ -18,10 +18,11 @@ body {
 .controls,
 .summary,
 .timeline {
-  background: #111827;
-  border: 1px solid #263248;
+  background: #ffffff;
+  border: 1px solid #d6dfeb;
   border-radius: 0.6rem;
   padding: 0.9rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
 .controls {
@@ -34,9 +35,9 @@ body {
 input,
 select,
 button {
-  background: #1f2937;
-  color: #f9fafb;
-  border: 1px solid #374151;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #bfd0e3;
   border-radius: 0.35rem;
   padding: 0.45rem 0.65rem;
 }
@@ -71,10 +72,10 @@ button {
 
 .type-chip {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid #334155;
+  background: #f8fafc;
+  border: 1px solid #c8d5e6;
   border-left: 8px solid var(--chip);
-  color: #e5e7eb;
+  color: #1e293b;
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
   margin-right: 0.45rem;
@@ -84,16 +85,20 @@ button {
 
 .corridor {
   position: relative;
-  border: 1px solid #293548;
+  border: 1px solid #ccdaea;
   border-radius: 10px;
   padding: 0.8rem 0.75rem;
-  background: linear-gradient(180deg, #0b1731 0%, #0f1f3f 48%, #0b1731 100%);
+  background: linear-gradient(180deg, #eef4fb 0%, #f7faff 48%, #eef4fb 100%);
 }
 
 .lane {
   position: relative;
-  height: 34px;
+  min-height: 34px;
   border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.35rem;
 }
 
 .lane-up {
@@ -119,7 +124,7 @@ button {
 
 .rail {
   height: 4px;
-  background: #94a3b8;
+  background: #64748b;
   border-radius: 999px;
 }
 
@@ -134,9 +139,15 @@ button {
     90deg,
     transparent 0,
     transparent 16px,
-    rgba(148, 163, 184, 0.5) 16px,
-    rgba(148, 163, 184, 0.5) 22px
+    rgba(100, 116, 139, 0.45) 16px,
+    rgba(100, 116, 139, 0.45) 22px
   );
+}
+
+.lane-row {
+  position: relative;
+  height: 20px;
+  border-radius: 6px;
 }
 
 .seg {
@@ -148,17 +159,17 @@ button {
 }
 
 .seg.lane-up {
-  top: 8px;
+  top: 3px;
 }
 
 .seg.lane-down {
-  top: 8px;
+  top: 3px;
 }
 
 .lane-label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: #334155;
   margin-bottom: 0.3rem;
 }
 
@@ -167,6 +178,6 @@ button {
 }
 
 .small {
-  color: #9ca3af;
+  color: #5b6b7f;
   font-size: 0.9rem;
 }
