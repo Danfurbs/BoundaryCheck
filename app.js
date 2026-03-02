@@ -169,8 +169,8 @@ function buildSummaryHtml(upRows, downRows, mileStart, mileEnd, count) {
 }
 
 function buildTrackHtml(upRows, downRows, mileStart, mileEnd) {
-  const upSegs = upRows.map((r) => segmentHtml(r, mileStart, mileEnd, 'lane-up')).join('');
-  const downSegs = downRows.map((r) => segmentHtml(r, mileStart, mileEnd, 'lane-down')).join('');
+  const upSegs = buildLaneRowsHtml(upRows, mileStart, mileEnd, 'lane-up');
+  const downSegs = buildLaneRowsHtml(downRows, mileStart, mileEnd, 'lane-down');
 
   const legend = [...new Set([...upRows, ...downRows].map((r) => r.type))]
     .map((type) => `<span class="type-chip" style="--chip:${getColor(type)}">${type}</span>`)
@@ -197,6 +197,29 @@ function segmentHtml(record, mileStart, mileEnd, laneClass) {
   const right = ((Math.min(record.end, mileEnd) - mileStart) / (mileEnd - mileStart)) * 100;
   const width = Math.max(0.8, right - left);
   return `<div class="seg ${laneClass}" title="${record.type} | ${record.rawPlant}" style="left:${left}%;width:${width}%;background:${getColor(record.type)}"></div>`;
+}
+
+function buildLaneRowsHtml(records, mileStart, mileEnd, laneClass) {
+  if (!records.length) return '<div class="lane-row"></div>';
+
+  const rows = [];
+  const sorted = [...records].sort((a, b) => a.start - b.start || a.end - b.end);
+
+  for (const record of sorted) {
+    const clippedStart = Math.max(record.start, mileStart);
+    const clippedEnd = Math.min(record.end, mileEnd);
+    const row = rows.find((laneRow) => clippedStart >= laneRow.end);
+    if (row) {
+      row.items.push(record);
+      row.end = Math.max(row.end, clippedEnd);
+    } else {
+      rows.push({ end: clippedEnd, items: [record] });
+    }
+  }
+
+  return rows
+    .map((laneRow) => `<div class="lane-row">${laneRow.items.map((r) => segmentHtml(r, mileStart, mileEnd, laneClass)).join('')}</div>`)
+    .join('');
 }
 
 function calculateGapsOverlaps(rows, mileStart, mileEnd) {
