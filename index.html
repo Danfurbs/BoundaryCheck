@@ -9,20 +9,37 @@
 </head>
 <body>
   <main class="container">
-    <h1>Boundary Asset Gap Checker</h1>
-    <p>Upload your extract (CSV/XLSX). Headers are read from <strong>row 2</strong>. Asset types <strong>BOUNDARY: UP</strong> and <strong>BOUNDARY: DOWN</strong> are ignored.</p>
+    <header class="page-header">
+      <h1>Boundary Asset Gap Checker</h1>
+      <p>
+        Upload your extract (CSV/XLSX). Headers are read from <strong>row 2</strong>.
+        Asset types <strong>BOUNDARY: UP</strong> and <strong>BOUNDARY: DOWN</strong> are ignored.
+      </p>
+    </header>
 
-    <section class="controls">
-      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
-      <button id="sampleBtn" type="button">Load sample</button>
-      <label>
-        Direction
-        <select id="directionSelect">
-          <option value="ALL">ALL</option>
-          <option value="UP">UP</option>
-          <option value="DOWN">DOWN</option>
-        </select>
-      </label>
+    <section class="controls" aria-label="Import and filters">
+      <div class="control-group file-group">
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
+        <button id="sampleBtn" type="button">Load sample</button>
+      </div>
+
+      <div class="control-group filter-group">
+        <label>
+          Direction
+          <select id="directionSelect">
+            <option value="ALL">ALL</option>
+            <option value="UP">UP</option>
+            <option value="DOWN">DOWN</option>
+          </select>
+        </label>
+
+        <label>
+          Asset type filter
+          <input id="assetTypeFilter" type="search" placeholder="e.g. palisade" />
+        </label>
+
+        <button id="resetBtn" type="button" class="ghost">Reset filters</button>
+      </div>
     </section>
 
     <section id="summary" class="summary"></section>
@@ -31,8 +48,15 @@
     <section class="mile-controls" aria-label="Mileage selector">
       <button id="prevMile" type="button">◀ Prev mile</button>
       <span id="mileLabel">No data loaded</span>
+      <label class="jump-wrap">
+        Jump to mile
+        <input id="mileJumpInput" type="number" min="0" step="1" inputmode="numeric" />
+      </label>
+      <button id="jumpBtn" type="button">Jump</button>
       <button id="nextMile" type="button">Next mile ▶</button>
     </section>
+
+    <p id="statusText" class="status-text" role="status" aria-live="polite"></p>
   </main>
 
   <script src="app.js"></script>
