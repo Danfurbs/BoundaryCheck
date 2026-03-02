@@ -3,6 +3,7 @@ const state = {
   currentMile: null,
   minMile: null,
   maxMile: null,
+  selectedAssetId: null,
 };
 
 const requiredColumns = [
@@ -46,6 +47,14 @@ LNW North\tDB:IMDM Lancs and Cumbria\tDB07\tDB:Blackburn\tBD\tBD100\tBD100RTK000
 directionSelect.addEventListener('change', render);
 prevBtn.addEventListener('click', () => moveMile(-1));
 nextBtn.addEventListener('click', () => moveMile(1));
+timeline.addEventListener('click', onTimelineClick);
+
+function onTimelineClick(event) {
+  const seg = event.target.closest('.seg');
+  if (!seg) return;
+  state.selectedAssetId = seg.dataset.assetId;
+  render();
+}
 
 function moveMile(delta) {
   if (state.currentMile === null) return;
@@ -65,14 +74,20 @@ function loadRows(rows) {
 
   const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
   const parsed = rows.slice(2)
-    .map((r) => {
+    .map((r, index) => {
       const type = (r[idx['Asset Desc 2']] || 'Unknown').trim();
+      const start = parseMileage(r[idx['Asset Start Mileage']]);
+      const end = parseMileage(r[idx['Asset End Mileage']]);
       return {
+        id: `asset-${index}`,
         type,
-        start: parseMileage(r[idx['Asset Start Mileage']]),
-        end: parseMileage(r[idx['Asset End Mileage']]),
+        start,
+        end,
         direction: parseDirection(r[idx['Structured Plant Number']]),
         rawPlant: (r[idx['Structured Plant Number']] || '').trim(),
+        assetNumber: (r[idx['Asset Number']] || '').trim(),
+        assetDesc1: (r[idx['Asset Desc 1']] || '').trim(),
+        status: (r[idx['Asset Status']] || '').trim(),
       };
     })
     .filter((x) => Number.isFinite(x.start) && Number.isFinite(x.end) && x.end > x.start)
@@ -87,6 +102,7 @@ function loadRows(rows) {
   state.minMile = Math.floor(Math.min(...parsed.map((p) => p.start)));
   state.maxMile = Math.floor(Math.max(...parsed.map((p) => p.end)));
   state.currentMile = state.minMile;
+  state.selectedAssetId = parsed[0].id;
   render();
 }
 
@@ -143,12 +159,16 @@ function render() {
     (selectedDirection === 'ALL' || r.direction === selectedDirection) && r.end > mileStart && r.start < mileEnd
   );
 
+  if (state.selectedAssetId && !visible.some((record) => record.id === state.selectedAssetId)) {
+    state.selectedAssetId = visible[0]?.id || null;
+  }
+
   mileLabel.textContent = `Mile ${mileStart} to ${mileEnd} (${selectedDirection})`;
   const upRows = visible.filter((r) => r.direction === 'UP');
   const downRows = visible.filter((r) => r.direction === 'DOWN');
 
   summary.innerHTML = buildSummaryHtml(upRows, downRows, mileStart, mileEnd, visible.length);
-  timeline.innerHTML = buildTrackHtml(upRows, downRows, mileStart, mileEnd);
+  timeline.innerHTML = buildTrackHtml(upRows, downRows, mileStart, mileEnd, visible);
 }
 
 function buildSummaryHtml(upRows, downRows, mileStart, mileEnd, count) {
@@ -168,9 +188,10 @@ function buildSummaryHtml(upRows, downRows, mileStart, mileEnd, count) {
   `;
 }
 
-function buildTrackHtml(upRows, downRows, mileStart, mileEnd) {
+function buildTrackHtml(upRows, downRows, mileStart, mileEnd, visible) {
   const upSegs = buildLaneRowsHtml(upRows, mileStart, mileEnd, 'lane-up');
   const downSegs = buildLaneRowsHtml(downRows, mileStart, mileEnd, 'lane-down');
+  const selected = visible.find((record) => record.id === state.selectedAssetId);
 
   const legend = [...new Set([...upRows, ...downRows].map((r) => r.type))]
     .map((type) => `<span class="type-chip" style="--chip:${getColor(type)}">${type}</span>`)
@@ -178,17 +199,46 @@ function buildTrackHtml(upRows, downRows, mileStart, mileEnd) {
 
   return `
     <div class="track-legend">${legend || '<span class="small">No assets in this mile for this direction.</span>'}</div>
-    <div class="corridor">
-      <div class="lane-label lane-label-up">UP side boundary</div>
-      <div class="lane lane-up">${upSegs}</div>
-      <div class="railway" aria-hidden="true">
-        <div class="rail"></div>
-        <div class="sleepers"></div>
-        <div class="rail"></div>
+    <div class="timeline-layout">
+      ${buildAssetPanelHtml(selected)}
+      <div class="corridor">
+        <div class="lane-label lane-label-up">UP side boundary</div>
+        <div class="lane lane-up">${upSegs}</div>
+        <div class="railway" aria-hidden="true">
+          <div class="rail"></div>
+          <div class="sleepers"></div>
+          <div class="rail"></div>
+        </div>
+        <div class="lane lane-down">${downSegs}</div>
+        <div class="lane-label lane-label-down">DOWN side boundary</div>
       </div>
-      <div class="lane lane-down">${downSegs}</div>
-      <div class="lane-label lane-label-down">DOWN side boundary</div>
     </div>
+  `;
+}
+
+function buildAssetPanelHtml(record) {
+  if (!record) {
+    return `
+      <aside class="asset-panel">
+        <h3>Asset details</h3>
+        <p class="small">Click any brick to inspect its information.</p>
+      </aside>
+    `;
+  }
+
+  return `
+    <aside class="asset-panel">
+      <h3>Asset details</h3>
+      <dl>
+        <dt>Type</dt><dd>${record.type}</dd>
+        <dt>Direction</dt><dd>${record.direction}</dd>
+        <dt>Mileage</dt><dd>${toMileage(record.start)} to ${toMileage(record.end)}</dd>
+        <dt>Structured plant</dt><dd>${record.rawPlant || '—'}</dd>
+        <dt>Asset number</dt><dd>${record.assetNumber || '—'}</dd>
+        <dt>Description</dt><dd>${record.assetDesc1 || '—'}</dd>
+        <dt>Status</dt><dd>${record.status || '—'}</dd>
+      </dl>
+    </aside>
   `;
 }
 
@@ -196,7 +246,10 @@ function segmentHtml(record, mileStart, mileEnd, laneClass) {
   const left = ((Math.max(record.start, mileStart) - mileStart) / (mileEnd - mileStart)) * 100;
   const right = ((Math.min(record.end, mileEnd) - mileStart) / (mileEnd - mileStart)) * 100;
   const width = Math.max(0.8, right - left);
-  return `<div class="seg ${laneClass}" title="${record.type} | ${record.rawPlant}" style="left:${left}%;width:${width}%;background:${getColor(record.type)}"></div>`;
+  const label = `${toMileage(record.start)}-${toMileage(record.end)}`;
+  const showLabel = width > 14;
+  const selectedClass = state.selectedAssetId === record.id ? 'selected' : '';
+  return `<button class="seg ${laneClass} ${selectedClass}" data-asset-id="${record.id}" title="${record.type} | ${record.rawPlant}" style="left:${left}%;width:${width}%;background:${getColor(record.type)}">${showLabel ? `<span class="seg-label">${label}</span>` : ''}</button>`;
 }
 
 function buildLaneRowsHtml(records, mileStart, mileEnd, laneClass) {
