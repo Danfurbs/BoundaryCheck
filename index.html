@@ -59,6 +59,16 @@
     <p id="statusText" class="status-text" role="status" aria-live="polite"></p>
   </main>
 
+  <div id="progressModal" class="progress-modal hidden" role="dialog" aria-modal="true" aria-labelledby="progressTitle">
+    <div class="progress-content">
+      <h2 id="progressTitle">Processing file</h2>
+      <p id="progressMessage">Preparing…</p>
+      <div class="progress-track" aria-hidden="true">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

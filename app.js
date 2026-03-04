@@ -30,15 +30,33 @@ const jumpBtn = document.getElementById('jumpBtn');
 const statusText = document.getElementById('statusText');
 const summary = document.getElementById('summary');
 const timeline = document.getElementById('timeline');
+const progressModal = document.getElementById('progressModal');
+const progressMessage = document.getElementById('progressMessage');
+const progressBar = document.getElementById('progressBar');
+
+let progressHideTimer = null;
 
 fileInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  const rows = await readFileRows(file);
-  loadRows(rows, file.name);
+
+  showProgress('Opening file…', 10);
+  try {
+    const rows = await readFileRows(file);
+    showProgress('Validating rows…', 60);
+    await nextPaint();
+    loadRows(rows, file.name);
+    showProgress('Done', 100);
+    hideProgressSoon();
+  } catch (error) {
+    setStatus(`Unable to read file: ${error?.message || 'unknown error'}`);
+    progressModal.classList.add('hidden');
+  }
 });
 
-sampleBtn.addEventListener('click', () => {
+sampleBtn.addEventListener('click', async () => {
+  showProgress('Loading sample dataset…', 25);
+  await nextPaint();
   const sampleText = `ignore row\nRoute\tIMDM\tEngineer\tSection Manager\tAsset Class Code & Desc\tItem Name Code & Desc\tEGI Code & Desc\tAsset Number\tAsset Desc 1\tAsset Desc 2\tStructured Plant Number\tMileage From\tMileage to\tTotal Yards\tStrategic Route Code & Desc\tAsset Position\tELR\tTrack ID\tAsset Start Mileage\tAsset End Mileage\tAsset Status
 LNW North\tDB:IMDM Lancs and Cumbria\tDB07\tDB:Blackburn\tBD\tBD100\tBD100RTK0001\t17659077\tLITTLEBOROUGH\tBOUNDARY: DRY STONE WALL\tMVN2UP 019.1620:019.1660BD01\t019.1620\t019.1660\t40\tH.10\tRS\tMVN2\t\t019.1620\t019.1710\tFM
 LNW North\tDB:IMDM Lancs and Cumbria\tDB07\tDB:Blackburn\tBD\tBD100\tBD100RTK0001\t17659080\tLITTLEBOROUGH\tBOUNDARY: DRY STONE WALL\tMVN2UP 020.1220:020.1320BD01\t020.1220\t020.1320\t100\tH.10\tRS\tMVN2\t\t020.1220\t020.1280\tFM
@@ -46,7 +64,11 @@ LNW North\tDB:IMDM Lancs and Cumbria\tDB07\tDB:Blackburn\tBD\tBD100\tBD100RTK000
 LNW North\tDB:IMDM Lancs and Cumbria\tDB07\tDB:Blackburn\tBD\tBD100\tBD100RTK0001\t17659088\tLITTLEBOROUGH\tBOUNDARY: DRY STONE WALL\tMVN2DOWN 015.0170:015.0220BD01\t015.0170\t015.0220\t50\tH.10\tLS\tMVN2\t\t015.0170\t015.0220\tFM
 LNW North\tDB:IMDM Lancs and Cumbria\tDB07\tDB:Blackburn\tBD\tBD100\tBD100RTK0001\t17659115\tLITTLEBOROUGH\tBOUNDARY: UP\tMVN2UP 020.1400:020.1500BD01\t020.1400\t020.1500\t100\tH.10\tRS\tMVN2\t\t020.1400\t020.1500\tFM`;
   const rows = sampleText.split('\n').map((line) => line.split('\t'));
+  showProgress('Rendering sample data…', 85);
+  await nextPaint();
   loadRows(rows, 'sample dataset');
+  showProgress('Done', 100);
+  hideProgressSoon();
 });
 
 directionSelect.addEventListener('change', render);
@@ -146,6 +168,26 @@ function loadRows(rows, sourceLabel = 'file') {
 
   setStatus(`Loaded ${parsed.length} valid records from ${sourceLabel}.`);
   render();
+}
+
+function showProgress(message, percent = 0) {
+  if (progressHideTimer) {
+    clearTimeout(progressHideTimer);
+    progressHideTimer = null;
+  }
+  progressMessage.textContent = message;
+  progressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+  progressModal.classList.remove('hidden');
+}
+
+function hideProgressSoon() {
+  progressHideTimer = setTimeout(() => {
+    progressModal.classList.add('hidden');
+  }, 240);
+}
+
+function nextPaint() {
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 }
 
 function parseDirection(plant) {
@@ -281,13 +323,17 @@ function buildAssetPanelHtml(record) {
     `;
   }
 
+  const startMileage = toMileage(record.start);
+  const endMileage = toMileage(record.end);
+  const mileageLabel = startMileage && endMileage ? `${startMileage} to ${endMileage}` : '—';
+
   return `
     <aside class="asset-panel">
       <h3>Asset details</h3>
       <dl>
         <dt>Type</dt><dd>${record.type}</dd>
         <dt>Direction</dt><dd>${record.direction}</dd>
-        <dt>Mileage</dt><dd>${toMileage(record.start)} to ${toMileage(record.end)}</dd>
+        <dt>Mileage</dt><dd>${mileageLabel}</dd>
         <dt>Structured plant</dt><dd>${record.rawPlant || '—'}</dd>
         <dt>Asset number</dt><dd>${record.assetNumber || '—'}</dd>
         <dt>Description</dt><dd>${record.assetDesc1 || '—'}</dd>
@@ -359,6 +405,7 @@ function formatRanges(ranges) {
 }
 
 function toMileage(decimalMile) {
+  if (!Number.isFinite(decimalMile)) return '';
   const miles = Math.floor(decimalMile);
   const yards = Math.round((decimalMile - miles) * 1760);
   return `${String(miles).padStart(3, '0')}.${String(yards).padStart(4, '0')}`;
